@@ -18,7 +18,7 @@ help: ## Muestra esta ayuda
 	@echo Comandos disponibles:
 	@echo   make setup       - Instala dependencias y registra el kernel (uv ya instalado)
 	@echo   make setup-linux - Instala uv si falta + setup completo (Debian/Ubuntu)
-	@echo   make install     - Solo instala/sincroniza dependencias (uv sync)
+	@echo   make install     - Sincroniza dependencias con uv.lock (uv sync --locked)
 	@echo   make kernel      - Registra el entorno como kernel de Jupyter
 	@echo   make run         - Ejecuta main.py
 	@echo   make api         - Levanta la API de FastAPI (uvicorn)
@@ -46,8 +46,8 @@ install-uv: ## Instala uv en Debian/Ubuntu si no esta presente
 		echo "uv instalado. Puede que necesites reiniciar la terminal."; \
 	fi
 
-install: ## Sincroniza las dependencias del pyproject.toml con uv
-	uv sync
+install: ## Sincroniza las dependencias segun uv.lock
+	uv sync --locked
 
 kernel: ## Registra el .venv como kernel de Jupyter
 	uv run python -m ipykernel install --user --name $(KERNEL_NAME) --display-name "$(KERNEL_DISPLAY)"
