@@ -146,20 +146,59 @@ El principio de diseño será mantener una responsabilidad específica por módu
 
 ## Cómo ejecutar el proyecto
 
-El proyecto utiliza Python y `uv` para gestionar las dependencias y mantener un entorno reproducible.
+El proyecto utiliza Python y `uv` para gestionar las dependencias y mantener un entorno reproducible. El `Makefile` centraliza la inicialización para que cualquier integrante deje el entorno listo con un solo comando.
 
 ### 1. Clonar el repositorio
 
 ```bash
 git clone <URL_DEL_REPOSITORIO>
-cd earthquake-estimator
+cd earthquake
 ```
 
-### 2. Instalar las dependencias
+### 2. Inicializar el proyecto
+
+La forma recomendada es usar el `Makefile`, que instala las dependencias y registra el kernel de Jupyter para empezar a trabajar de inmediato.
+
+**En Windows** (requiere tener `uv` instalado; `make` se instala con `choco install make` o `scoop install make`):
 
 ```bash
-uv sync
+make setup
 ```
+
+**En Linux (Debian/Ubuntu):** instala `uv` automáticamente si no está presente y luego hace el setup completo:
+
+```bash
+make setup-linux
+```
+
+> Tras `make setup-linux`, si la terminal no reconoce `uv`, abre una nueva o ejecuta `source $HOME/.local/bin/env`.
+
+Ambos comandos dejan el entorno listo y registran un kernel de Jupyter llamado `earthquake`, que debes seleccionar al abrir los notebooks.
+
+### 2b. Alternativa: instalación tradicional con uv
+
+Si prefieres no usar `make`, puedes replicar el setup manualmente:
+
+```bash
+# Instala/sincroniza las dependencias en el entorno .venv
+uv sync
+
+# (Opcional) Registra el entorno como kernel de Jupyter
+uv run python -m ipykernel install --user --name earthquake --display-name "earthquake"
+```
+
+#### Comandos disponibles en el `Makefile`
+
+| Comando | Descripción |
+|---|---|
+| `make setup` | Setup completo en Windows/Mac/Linux (requiere `uv` ya instalado). |
+| `make setup-linux` | Setup en Debian/Ubuntu: instala `uv` si falta + setup completo. |
+| `make install` | Solo sincroniza las dependencias (`uv sync`). |
+| `make kernel` | Registra el entorno como kernel de Jupyter. |
+| `make run` | Ejecuta `main.py` dentro del entorno. |
+| `make api` | Levanta la API de FastAPI en modo desarrollo. |
+| `make clean` | Elimina el entorno virtual y las cachés. |
+| `make help` | Lista todos los comandos disponibles. |
 
 ### 3. Preparar los datos
 
