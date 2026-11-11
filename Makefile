@@ -12,7 +12,7 @@ KERNEL_DISPLAY := earthquake
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-linux install-uv install kernel run api lab clean
+.PHONY: help setup setup-linux install-uv install kernel data run api lab clean
 
 help: ## Muestra esta ayuda
 	@echo Comandos disponibles:
@@ -20,6 +20,7 @@ help: ## Muestra esta ayuda
 	@echo   make setup-linux - Instala uv si falta + setup completo (Debian/Ubuntu)
 	@echo   make install     - Sincroniza dependencias con uv.lock (uv sync --locked)
 	@echo   make kernel      - Registra el entorno como kernel de Jupyter
+	@echo   make data        - Descarga el dataset de Kaggle a data/database.csv
 	@echo   make run         - Ejecuta main.py
 	@echo   make api         - Levanta la API de FastAPI (uvicorn)
 	@echo   make clean       - Elimina el entorno virtual y caches
