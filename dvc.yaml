@@ -1,11 +1,4 @@
 artifacts:
-  modelo-sismico:
-    path: models/modelo_random_forest.joblib
-    type: model
-    desc: Pipeline completo (preprocesamiento + RandomForestRegressor) para estimar la magnitud
-    labels:
-      - random-forest
-      - regresion
   clasificador-sismo-fuerte:
     path: models/modelo_clasificador_fuerte.joblib
     type: model

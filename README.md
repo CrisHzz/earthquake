@@ -25,8 +25,6 @@ El conjunto de datos contiene registros históricos de terremotos con magnitudes
 - **Entradas:** `Latitude`, `Longitude` y `Depth`. El pipeline calcula internamente la variable `peso_zona_sismica` (60 % actividad histórica de la zona + 40 % distancia al límite de placa tectónica).
 - **Salida:** la probabilidad de que el terremoto sea fuerte (`predict_proba`) y la etiqueta 1 = fuerte / 0 = no fuerte (`predict`, umbral por defecto de 0.5).
 
-El modelo de regresión de la magnitud (`pipelines/entrenamiento.py`, artefacto `modelo-sismico`) se conserva como experimento previo.
-
 El modelo se evalúa con métricas para clases desbalanceadas (cerca del 10 % de los eventos son fuertes): PR_AUC, ROC_AUC, F1, precisión, recall y exactitud balanceada.
 
 ---
@@ -141,7 +139,7 @@ earthquake-estimator/
 | `config.py` | Centraliza las rutas, nombres de variables, parámetros y configuraciones. |
 | `data.py` | Gestiona la descarga, carga y validación del conjunto de datos. |
 | `features.py` | Realiza la limpieza, transformación y selección de características. |
-| `model.py` | Define el pipeline de preprocesamiento y el modelo de regresión. |
+| `model.py` | Define el pipeline de preprocesamiento y el modelo de clasificación. |
 | `train.py` | Ejecuta el entrenamiento, evaluación y almacenamiento del modelo. |
 | `predict.py` | Carga el modelo entrenado y realiza predicciones sobre nuevos registros. |
 
