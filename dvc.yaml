@@ -6,3 +6,10 @@ artifacts:
     labels:
       - random-forest
       - regresion
+  clasificador-sismo-fuerte:
+    path: models/modelo_clasificador_fuerte.joblib
+    type: model
+    desc: Pipeline completo (preprocesamiento + RandomForestClassifier) que estima la probabilidad de Magnitude >= 6.5
+    labels:
+      - random-forest
+      - clasificacion

@@ -1,0 +1,5 @@
+outs:
+- md5: ce44585ec3d4a24738b0ddc9b15b0b32
+  size: 10472689
+  hash: md5
+  path: modelo_clasificador_fuerte.joblib

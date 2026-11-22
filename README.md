@@ -12,17 +12,22 @@
 
 Los terremotos son fenómenos naturales que pueden generar consecuencias importantes para las poblaciones, las infraestructuras y los ecosistemas. El análisis de los registros sísmicos históricos permite identificar patrones y comprender mejor las características asociadas a estos eventos.
 
-**Pregunta del proyecto:** ¿Es posible estimar la magnitud de un terremoto a partir de sus características geográficas, temporales y sísmicas, utilizando un modelo de aprendizaje automático interpretable?
+**Pregunta del proyecto:** ¿Es posible estimar si un terremoto será fuerte (magnitud de 6.5 o superior) a partir de su ubicación y profundidad, utilizando un modelo de aprendizaje automático interpretable?
 
-**Objetivo:** Desarrollar un modelo de regresión basado en árboles de decisión que permita estimar la magnitud de los terremotos a partir de variables relevantes de sus registros históricos. Se busca priorizar la interpretabilidad del modelo, de manera que sea posible comprender qué características tienen mayor influencia en las predicciones y explicar los criterios utilizados para generar cada estimación.
+**Objetivo:** Desarrollar un modelo de clasificación basado en árboles de decisión que estime la probabilidad de que un terremoto sea fuerte (`Magnitude >= 6.5`) a partir de su latitud, longitud y profundidad. Se busca priorizar la interpretabilidad del modelo, de manera que sea posible comprender qué características tienen mayor influencia en las predicciones.
 
 **Dataset:** [Earthquake Database – USGS (Kaggle)](https://www.kaggle.com/datasets/usgs/earthquake-database).
 
 El conjunto de datos contiene registros históricos de terremotos con magnitudes reportadas de 5.5 o superiores desde 1965. Incluye información sobre fecha, hora, ubicación geográfica, profundidad, magnitud y fuentes de registro.
 
-**Modelo:** Se explorará inicialmente un modelo de árbol de decisión para regresión (`DecisionTreeRegressor`), considerando su capacidad para representar relaciones no lineales y facilitar la interpretación de los resultados.
+**Modelo oficial:** `RandomForestClassifier` (`pipelines/clasificacion_fuerte.py`), guardado como pipeline completo (preprocesamiento + clasificador) en `models/modelo_clasificador_fuerte.joblib`, versionado con DVC y registrado con GTO como el artefacto `clasificador-sismo-fuerte`.
 
-El modelo será evaluado mediante métricas apropiadas para problemas de regresión, como MAE, RMSE y R².
+- **Entradas:** `Latitude`, `Longitude` y `Depth`. El pipeline calcula internamente la variable `peso_zona_sismica` (60 % actividad histórica de la zona + 40 % distancia al límite de placa tectónica).
+- **Salida:** la probabilidad de que el terremoto sea fuerte (`predict_proba`) y la etiqueta 1 = fuerte / 0 = no fuerte (`predict`, umbral por defecto de 0.5).
+
+El modelo de regresión de la magnitud (`pipelines/entrenamiento.py`, artefacto `modelo-sismico`) se conserva como experimento previo.
+
+El modelo se evalúa con métricas para clases desbalanceadas (cerca del 10 % de los eventos son fuertes): PR_AUC, ROC_AUC, F1, precisión, recall y exactitud balanceada.
 
 ---
 
@@ -54,7 +59,7 @@ El conjunto de datos contiene 21 columnas que describen diferentes característi
 | `Magnitude Source` | Fuente utilizada para determinar la magnitud. |
 | `Status` | Estado del registro sísmico. |
 
-**Variable objetivo:** `Magnitude`.
+**Variable objetivo:** `fuerte`, derivada de `Magnitude` (1 si `Magnitude >= 6.5`, 0 en otro caso).
 
 Las variables predictoras definitivas se establecerán durante el análisis exploratorio y la selección de características, considerando su relevancia, calidad y disponibilidad, evitando la fuga de información (*data leakage*).
 
@@ -222,7 +227,7 @@ El proceso realizará el preprocesamiento, entrenamiento y evaluación del model
 make serve
 ```
 
-La aplicación permitirá ingresar las características de un evento sísmico y consultar la magnitud estimada por el modelo.
+La aplicación permitirá ingresar las características de un evento sísmico y consultar la probabilidad de que sea un terremoto fuerte según el modelo.
 
 *Los comandos anteriores representan la interfaz prevista del proyecto y se ajustarán a la configuración definitiva del Makefile.*
 
@@ -230,22 +235,30 @@ La aplicación permitirá ingresar las características de un evento sísmico y 
 
 ## Evaluación del modelo
 
-El rendimiento del modelo se evaluará utilizando métricas de regresión:
+El rendimiento del clasificador se evalúa con métricas para clases desbalanceadas:
 
 | Métrica | Propósito |
 |---|---|
-| MAE | Mide el error absoluto promedio entre las magnitudes reales y estimadas. |
-| RMSE | Penaliza en mayor medida los errores de predicción elevados. |
-| R² | Evalúa qué proporción de la variabilidad de la variable objetivo explica el modelo. |
+| PR_AUC | Área bajo la curva precisión-recall; métrica principal con la clase fuerte minoritaria. |
+| ROC_AUC | Capacidad de ordenar los eventos fuertes por encima de los no fuertes. |
+| F1, precisión, recall | Calidad de la etiqueta con el umbral por defecto. |
+| Exactitud balanceada | Promedio del recall de ambas clases. |
 
-Además de las métricas, se analizará la interpretabilidad del árbol de decisión mediante:
+Resultados en el conjunto de prueba (evaluado una sola vez):
 
-- Importancia de las características (*Feature Importance*).
-- Visualización de la estructura del árbol.
-- Análisis de las reglas de decisión.
-- Comparación entre valores reales y estimados.
+| Modelo | ROC_AUC | PR_AUC |
+|---|---|---|
+| Línea base (`DummyClassifier`) | 0.4952 | 0.0939 |
+| Random Forest | 0.6415 | 0.1552 |
 
-Los resultados se documentarán una vez finalizado el entrenamiento y la evaluación.
+Las pruebas sobre `peso_zona_sismica` (`pipelines/pruebas_peso_zona.py`) usan solo entrenamiento y validación: importancia por permutación de las 4 variables con PR_AUC y comparación del clasificador con y sin el peso de zona.
+
+Ejecución desde la raíz del proyecto:
+
+```bash
+uv run python pipelines/clasificacion_fuerte.py
+uv run python pipelines/pruebas_peso_zona.py
+```
 
 ---
 

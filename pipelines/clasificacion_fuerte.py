@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import joblib
 from scipy.stats import randint
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -18,6 +21,9 @@ from preprocesamiento import (
     crear_pipeline_preprocesamiento,
     dividir_datos,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+RUTA_MODELO = PROJECT_ROOT / "models" / "modelo_clasificador_fuerte.joblib"
 
 UMBRAL_FUERTE = 6.5
 
@@ -107,6 +113,10 @@ def main():
     imprimir_metricas("Validación", modelos, X_val, y_val)
     # El conjunto de prueba se evalúa una sola vez al final
     imprimir_metricas("Prueba", modelos, X_test, y_test)
+
+    # Pipeline completo reajustado sobre entrenamiento con los mejores hiperparámetros
+    joblib.dump(modelo, RUTA_MODELO)
+    print(f"\nModelo guardado en {RUTA_MODELO}")
 
 
 if __name__ == "__main__":
