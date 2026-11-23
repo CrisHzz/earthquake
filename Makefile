@@ -16,7 +16,7 @@ ARTEFACTO_GTO := clasificador-sismo-fuerte
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-linux install-uv install kernel data train test run api lab clean
+.PHONY: help setup setup-linux install-uv install kernel data pull-data train test run api lab clean
 
 help: ## Muestra esta ayuda
 	@echo Comandos disponibles:
@@ -25,6 +25,7 @@ help: ## Muestra esta ayuda
 	@echo   make install     - Sincroniza dependencias con uv.lock (uv sync --locked)
 	@echo   make kernel      - Registra el entorno como kernel de Jupyter
 	@echo   make data        - Descarga el dataset de Kaggle a data/database.csv
+	@echo   make pull-data   - Trae los datos versionados (database.csv y PB2002_steps.csv) con DVC
 	@echo   make train       - Entrena el clasificador, guarda el modelo y lo versiona (DVC + GTO)
 	@echo   make test        - Evalua el modelo guardado sobre el conjunto de prueba (sin reentrenar)
 	@echo   make run         - Ejecuta main.py
@@ -59,7 +60,10 @@ install: ## Sincroniza las dependencias segun uv.lock
 kernel: ## Registra el .venv como kernel de Jupyter
 	uv run python -m ipykernel install --user --name $(KERNEL_NAME) --display-name "$(KERNEL_DISPLAY)"
 
-train: ## Entrena el clasificador, guarda el modelo y lo versiona con DVC + GTO
+pull-data: ## Trae los datos versionados con DVC (database.csv y PB2002_steps.csv)
+	uv run dvc pull data/database.csv.dvc data/PB2002_steps.csv.dvc
+
+train: pull-data ## Entrena el clasificador, guarda el modelo y lo versiona con DVC + GTO
 	uv run python pipelines/clasificacion_fuerte.py
 	uv run dvc add $(MODELO)
 	uv run dvc push
@@ -67,7 +71,8 @@ train: ## Entrena el clasificador, guarda el modelo y lo versiona con DVC + GTO
 	@REM gto register falla si el commit ya esta registrado (modelo identico); no debe tumbar el target
 	-uv run gto register $(ARTEFACTO_GTO)
 
-test: ## Evalua el modelo guardado sobre el conjunto de prueba sin reentrenar
+test: pull-data ## Evalua el modelo guardado sobre el conjunto de prueba sin reentrenar
+	-uv run dvc pull $(MODELO).dvc
 	uv run python pipelines/evaluar.py
 
 run: ## Ejecuta main.py dentro del entorno
