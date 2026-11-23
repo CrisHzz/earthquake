@@ -93,7 +93,7 @@ def main():
         ESPACIO_HIPERPARAMETROS,
         n_iter=10,
         cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=SEMILLA),
-        scoring="average_precision",
+        scoring="roc_auc",
         random_state=SEMILLA,
         n_jobs=1,
         verbose=1,
@@ -102,7 +102,7 @@ def main():
     modelo = busqueda.best_estimator_
 
     print(f"Mejores hiperparámetros: {busqueda.best_params_}")
-    print(f"PR_AUC CV (5 folds): {busqueda.best_score_:.4f}")
+    print(f"ROC_AUC CV (5 folds): {busqueda.best_score_:.4f}")
 
     # Línea base: predice al azar respetando la proporción de clases del entrenamiento
     linea_base = DummyClassifier(strategy="stratified", random_state=SEMILLA).fit(

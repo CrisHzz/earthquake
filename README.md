@@ -25,7 +25,7 @@ El conjunto de datos contiene registros históricos de terremotos con magnitudes
 - **Entradas:** `Latitude`, `Longitude` y `Depth`. El pipeline calcula internamente la variable `peso_zona_sismica` (60 % actividad histórica de la zona + 40 % distancia al límite de placa tectónica).
 - **Salida:** la probabilidad de que el terremoto sea fuerte (`predict_proba`) y la etiqueta 1 = fuerte / 0 = no fuerte (`predict`, umbral por defecto de 0.5).
 
-El modelo se evalúa con métricas para clases desbalanceadas (cerca del 10 % de los eventos son fuertes): PR_AUC, ROC_AUC, F1, precisión, recall y exactitud balanceada.
+El modelo se evalúa con métricas para clases desbalanceadas (cerca del 10 % de los eventos son fuertes): ROC_AUC, PR_AUC, F1, precisión, recall y exactitud balanceada. Los hiperparámetros se optimizan con ROC_AUC (validación cruzada estratificada de 5 folds sobre entrenamiento).
 
 ---
 
@@ -237,8 +237,8 @@ El rendimiento del clasificador se evalúa con métricas para clases desbalancea
 
 | Métrica | Propósito |
 |---|---|
-| PR_AUC | Área bajo la curva precisión-recall; métrica principal con la clase fuerte minoritaria. |
-| ROC_AUC | Capacidad de ordenar los eventos fuertes por encima de los no fuertes. |
+| ROC_AUC | Capacidad de ordenar los eventos fuertes por encima de los no fuertes; métrica principal, usada para optimizar los hiperparámetros (objetivo mínimo 0.6). |
+| PR_AUC | Área bajo la curva precisión-recall con la clase fuerte minoritaria. |
 | F1, precisión, recall | Calidad de la etiqueta con el umbral por defecto. |
 | Exactitud balanceada | Promedio del recall de ambas clases. |
 
