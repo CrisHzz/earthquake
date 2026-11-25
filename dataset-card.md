@@ -4,9 +4,17 @@ Documentación de los datos usados por **Earthquake Estimator**. El proyecto usa
 conjuntos de datos: el dataset principal de terremotos (objetivo del modelo) y un
 dataset auxiliar de límites de placas tectónicas (para derivar una feature geográfica).
 
-Ninguno de los dos se versiona en Git: los archivos crudos están en `.gitignore` y se
-obtienen con un script (`src/download_data.py`, `src/download_pb2002.py`) y se versionan
-con DVC (`data/*.csv.dvc`).
+Ninguno de los dos se versiona completo en Git: los archivos crudos están en `.gitignore`,
+se descargan con un script (`src/download_data.py`, `src/download_pb2002.py`, vía
+`make data`) y se versionan con DVC (`data/*.csv.dvc`).
+
+Los scripts descargan desde un espejo público en Google Drive con `gdown`, sin
+credenciales. Los archivos del espejo son copias de las fuentes originales citadas
+abajo (mismas 23 412 y 5 824 filas).
+
+En Git sí se versiona una muestra de 2000 filas del dataset principal
+(`data/sample_database.csv`, ver sección 3) para los tests y como respaldo cuando
+no se han descargado los datos.
 
 ---
 
@@ -18,7 +26,7 @@ con DVC (`data/*.csv.dvc`).
 | **Fuente** | [Kaggle – usgs/earthquake-database](https://www.kaggle.com/datasets/usgs/earthquake-database) |
 | **Origen primario** | U.S. Geological Survey (USGS) |
 | **Archivo** | `data/database.csv` |
-| **Descarga** | `src/download_data.py` (vía `kagglehub`, requiere credenciales de Kaggle) → `make data` |
+| **Descarga** | `src/download_data.py` → `make data` (espejo en Google Drive, ID `11IPQhBfy0osjn9xt8QW4NziB65O5KHbg`, sin credenciales) |
 | **Versionado** | DVC → puntero `data/database.csv.dvc` (md5 `6b72dda0…`, ~2.4 MB) |
 | **Licencia** | Dominio público (datos de una agencia del gobierno de EE. UU.; ver la página de Kaggle para los términos del dataset) |
 | **Nº de filas** | 23 412 |
@@ -100,7 +108,7 @@ Además de `Latitude`, `Longitude` y `Depth`, el pipeline calcula internamente
 | **Fuente** | [github.com/fraxen/tectonicplates](https://github.com/fraxen/tectonicplates) — `GeoJSON/PB2002_steps.json` |
 | **Origen primario** | Bird, P. (2003), *An updated digital model of plate boundaries*, Geochem. Geophys. Geosyst. |
 | **Archivo** | `data/PB2002_steps.csv` |
-| **Descarga** | `src/download_pb2002.py` → `make data` |
+| **Descarga** | `src/download_pb2002.py` → `make data` (espejo en Google Drive, ID `1KlKIyGigCIYIrU_dq2kHmXvGQ_aNqI9n`, CSV ya reducido a 6 columnas) |
 | **Versionado** | DVC → puntero `data/PB2002_steps.csv.dvc` (md5 `f2678aab…`, ~238 KB) |
 | **Nº de filas** | 5 824 tramos de límite |
 | **Nº de columnas** | 6 |
@@ -129,13 +137,40 @@ Además de `Latitude`, `Longitude` y `Depth`, el pipeline calcula internamente
 
 ---
 
+## 3. Muestra versionada: `data/sample_database.csv`
+
+| Campo | Valor |
+|---|---|
+| **Origen** | Subconjunto de `data/database.csv` |
+| **Nº de filas** | 2000 (≈ 8.5 % del dataset completo) |
+| **Nº de columnas** | 21 (las mismas del original) |
+| **Eventos fuertes** | 197 (9.85 %, frente a 9.8 % del dataset completo) |
+| **Tamaño** | ~207 KB |
+| **Versionado** | Directamente en Git |
+
+**Cómo se construyó:** muestreo estratificado por la etiqueta `fuerte`
+(`Magnitude >= 6.5`) con `random_state=42`, para conservar la proporción de la clase
+minoritaria. Después se barajaron las filas.
+
+**Para qué se usa:**
+
+- Los tests automatizados (`tests/`) y el CI la usan para no depender de descargas.
+- `cargar_datos()` (`pipelines/preprocesamiento.py`) la usa como respaldo si no existe
+  `data/database.csv`, e imprime un aviso.
+
+**No se usa para el modelo oficial.** Las métricas del README salen del dataset completo.
+Un modelo entrenado solo con la muestra tendría menos datos y no es comparable.
+
+---
+
 ## Reproducir la obtención de los datos
 
 ```bash
-# Descargar ambos datasets a data/ (requiere credenciales de Kaggle para database.csv)
+# Descargar ambos datasets a data/ desde Google Drive (sin credenciales)
 make data
 
-# O traer las versiones ya registradas con DVC (sin reentrenar ni descargar de Kaggle)
+# Alternativa para el equipo: traer las versiones registradas con DVC
+# (requiere acceso al remoto DVC, hoy una carpeta local)
 make pull-data
 ```
 

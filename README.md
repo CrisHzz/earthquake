@@ -1,6 +1,8 @@
 # Proyecto 1: Earthquake Estimator
 ### Especialización en Ciencia de Datos e Inteligencia Artificial
 
+[![CI](https://github.com/CrisHzz/earthquake/actions/workflows/ci.yml/badge.svg)](https://github.com/CrisHzz/earthquake/actions/workflows/ci.yml)
+
 **Integrantes:**
 - Cristian Camilo Hernández Gutiérrez.
 - Juan Sebastián Arango Muriel.
@@ -16,7 +18,7 @@ Los terremotos son fenómenos naturales que pueden generar consecuencias importa
 
 **Objetivo:** Desarrollar un modelo de clasificación basado en árboles de decisión que estime la probabilidad de que un terremoto sea fuerte (`Magnitude >= 6.5`) a partir de su latitud, longitud y profundidad. Se busca priorizar la interpretabilidad del modelo, de manera que sea posible comprender qué características tienen mayor influencia en las predicciones.
 
-**Dataset:** [Earthquake Database – USGS (Kaggle)](https://www.kaggle.com/datasets/usgs/earthquake-database).
+**Dataset:** [Earthquake Database – USGS (Kaggle)](https://www.kaggle.com/datasets/usgs/earthquake-database). Detalle de columnas, licencia, filas y filtros en [`dataset-card.md`](dataset-card.md).
 
 El conjunto de datos contiene registros históricos de terremotos con magnitudes reportadas de 5.5 o superiores desde 1965. Incluye información sobre fecha, hora, ubicación geográfica, profundidad, magnitud y fuentes de registro.
 
@@ -71,6 +73,7 @@ El repositorio sigue una arquitectura modular inspirada en la plantilla de refer
 earthquake/
 │
 ├── README.md
+├── dataset-card.md          # Documentación de los datasets
 ├── Makefile
 ├── pyproject.toml
 ├── uv.lock
@@ -79,18 +82,22 @@ earthquake/
 ├── .dvcignore
 ├── .python-version
 │
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # Integración continua: instala y corre los tests
+│
 ├── notebooks/
 │   ├── 01_exploracion_datos.ipynb
 │   └── 02_preprocesamiento.ipynb
 │
 ├── src/
-│   ├── download_data.py     # Descarga el dataset de terremotos desde Kaggle
-│   ├── download_pb2002.py   # Descarga los límites de placa PB2002
+│   ├── download_data.py     # Descarga el dataset de terremotos (espejo en Google Drive)
+│   ├── download_pb2002.py   # Descarga los límites de placa PB2002 (espejo en Google Drive)
 │   ├── zona_sismica.py      # Calcula el peso de zona sísmica (feature geográfica)
 │   └── predict.py           # Carga el modelo y realiza predicciones
 │
 ├── pipelines/
-│   ├── clasificacion_fuerte.py  # Entrena y versiona el modelo oficial
+│   ├── clasificacion_fuerte.py  # Entrena el modelo oficial y lo guarda en models/
 │   ├── preprocesamiento.py      # Limpieza y preparación de los datos
 │   ├── evaluar.py               # Evalúa el modelo guardado sobre el conjunto de prueba
 │   └── pruebas_peso_zona.py     # Pruebas de la feature peso_zona_sismica
@@ -101,6 +108,7 @@ earthquake/
 │       └── index.html       # Interfaz web del estimador
 │
 ├── data/
+│   ├── sample_database.csv      # Muestra de 2000 filas versionada en Git (tests y fallback)
 │   ├── database.csv.dvc         # Puntero DVC del dataset de terremotos
 │   └── PB2002_steps.csv.dvc     # Puntero DVC de los límites de placa
 │
@@ -108,6 +116,12 @@ earthquake/
 │   └── modelo_clasificador_fuerte.joblib.dvc  # Puntero DVC del modelo
 │
 └── tests/
+    ├── conftest.py          # Rutas e insumos compartidos por los tests
+    ├── fixtures/
+    │   └── limites_mini.csv # 6 tramos de límite de placa para los tests
+    ├── test_data.py         # Carga del dataset y partición
+    ├── test_features.py     # Pipeline de features
+    └── test_predict.py      # Inferencia end-to-end (código y API)
 ```
 
 ### ¿Qué hace cada carpeta?
@@ -124,18 +138,20 @@ earthquake/
 | `pipelines/` | Scripts ejecutables de preprocesamiento, entrenamiento y evaluación. |
 | `app/` | API FastAPI e interfaz web para consultar predicciones. |
 | `tests/` | Pruebas automatizadas para verificar el funcionamiento del proyecto. |
+| `.github/workflows/` | Integración continua con GitHub Actions. |
+| `dataset-card.md` | Ficha de los datasets: fuente, licencia, columnas, filas y filtros. |
 | `models/` | Almacena el modelo entrenado y serializado (versionado con DVC). |
-| `data/` | Almacena los datos descargados o generados localmente (versionados con DVC). |
+| `data/` | Almacena los datos descargados o generados localmente (versionados con DVC), más una muestra versionada en Git. |
 
 ### ¿Qué hace cada módulo en `src/` y `pipelines/`?
 
 | Archivo | Responsabilidad |
 |---|---|
-| `src/download_data.py` | Descarga el dataset de terremotos de Kaggle a `data/database.csv`. |
-| `src/download_pb2002.py` | Descarga los tramos de límites de placa PB2002 a `data/PB2002_steps.csv`. |
+| `src/download_data.py` | Descarga el dataset de terremotos a `data/database.csv` desde un espejo público en Google Drive (no requiere credenciales). |
+| `src/download_pb2002.py` | Descarga los tramos de límites de placa PB2002 a `data/PB2002_steps.csv` desde Google Drive. |
 | `src/zona_sismica.py` | Calcula la feature `peso_zona_sismica` a partir de la ubicación y los límites de placa. |
 | `src/predict.py` | Carga el modelo entrenado y realiza predicciones sobre nuevos eventos. |
-| `pipelines/preprocesamiento.py` | Limpieza y preparación de los datos para el entrenamiento. |
+| `pipelines/preprocesamiento.py` | Carga de datos (con fallback a la muestra), partición 70/20/10 y pipeline de preprocesamiento. |
 | `pipelines/clasificacion_fuerte.py` | Entrena el `RandomForestClassifier` y guarda el pipeline completo. |
 | `pipelines/evaluar.py` | Evalúa el modelo guardado sobre el conjunto de prueba sin reentrenar. |
 | `pipelines/pruebas_peso_zona.py` | Pruebas de importancia y aporte de la feature `peso_zona_sismica`. |
@@ -193,8 +209,13 @@ uv run python -m ipykernel install --user --name earthquake --display-name "eart
 |---|---|
 | `make setup` | Setup completo en Windows/Mac/Linux (requiere `uv` ya instalado). |
 | `make setup-linux` | Setup en Debian/Ubuntu: instala `uv` si falta + setup completo. |
-| `make install` | Solo sincroniza las dependencias (`uv sync`). |
+| `make install` | Solo sincroniza las dependencias (`uv sync --locked`). |
 | `make kernel` | Registra el entorno como kernel de Jupyter. |
+| `make data` | Descarga `database.csv` y `PB2002_steps.csv` desde Google Drive (sin credenciales). |
+| `make pull-data` | Trae los datos versionados con DVC (requiere acceso al remoto DVC del equipo). |
+| `make train` | Entrena el clasificador con los datos de `data/` y guarda el modelo en `models/`. |
+| `make release` | Versiona el modelo con DVC y lo registra con GTO (uso del equipo). |
+| `make test` | Evalúa el modelo guardado sobre el conjunto de prueba, sin reentrenar. |
 | `make run` | Ejecuta `main.py` dentro del entorno. |
 | `make api` | Levanta la API de FastAPI con `uvicorn` y sirve la página web en http://127.0.0.1:8000. |
 | `make clean` | Elimina el entorno virtual y las cachés. |
@@ -206,7 +227,11 @@ uv run python -m ipykernel install --user --name earthquake --display-name "eart
 make data
 ```
 
-Este comando permitirá obtener y preparar el conjunto de datos desde su fuente original. Los datos crudos no se almacenarán directamente en GitHub.
+Descarga los dos datasets a `data/` desde un espejo público en Google Drive, usando `gdown`. No pide credenciales de Kaggle ni de ningún otro servicio. Si los archivos ya existen, no los vuelve a descargar.
+
+Los datos crudos no se guardan en GitHub (están en `.gitignore`). La fuente original del dataset es Kaggle (ver [`dataset-card.md`](dataset-card.md)).
+
+Si `data/database.csv` no está, el código usa automáticamente la muestra versionada `data/sample_database.csv` (2000 filas). Esa muestra existe para los tests y para que el código no falle en un clon sin datos; el modelo oficial se entrena con el dataset completo.
 
 ### 4. Entrenar el modelo
 
@@ -214,7 +239,17 @@ Este comando permitirá obtener y preparar el conjunto de datos desde su fuente 
 make train
 ```
 
-El proceso realizará el preprocesamiento, entrenamiento y evaluación del modelo, y almacenará el resultado en la carpeta `models/`.
+Ejecuta `pipelines/clasificacion_fuerte.py`: partición 70/20/10, búsqueda de hiperparámetros con validación cruzada de 5 folds sobre entrenamiento, evaluación en validación y prueba, y guardado del pipeline completo en `models/modelo_clasificador_fuerte.joblib`. Con el dataset completo tarda unos minutos.
+
+`make train` no usa DVC ni GTO. Para versionar y registrar el modelo entrenado, el equipo usa `make release` (ver [Versionado de datos y modelo](#versionado-de-datos-y-modelo-dvc--gto)).
+
+### 4b. Evaluar el modelo guardado
+
+```bash
+make test
+```
+
+Carga el modelo de `models/` y muestra sus métricas sobre el conjunto de prueba, sin reentrenar. Las pruebas automatizadas se corren con `uv run pytest` (ver [Pruebas automatizadas](#pruebas-automatizadas)).
 
 ### 5. Ejecutar la aplicación
 
@@ -239,10 +274,10 @@ Si acabas de clonar el repositorio y no tienes nada preparado (ni entorno, ni da
 # 1. Instalar dependencias y dejar el entorno listo
 make setup          # en Linux/Debian/Ubuntu usa: make setup-linux
 
-# 2. Descargar el dataset de terremotos desde Kaggle a data/database.csv
+# 2. Descargar los datasets desde Google Drive a data/ (sin credenciales)
 make data
 
-# 3. Entrenar el modelo, guardarlo en models/ y versionarlo (DVC + GTO)
+# 3. Entrenar el modelo y guardarlo en models/
 make train
 
 # 4. Levantar la API y servir la página web en http://127.0.0.1:8000
@@ -255,9 +290,9 @@ En una sola línea (cada paso solo continúa si el anterior termina bien):
 make setup && make data && make train && make api
 ```
 
-Al terminar, abre http://127.0.0.1:8000/ en el navegador para usar la interfaz.
+Al terminar, abre http://127.0.0.1:8000/ en el navegador para usar la interfaz. `make api` queda corriendo en la terminal; se detiene con `Ctrl+C`.
 
-> **Nota:** `make data` descarga el dataset desde Kaggle y requiere credenciales de la API de Kaggle (variable de entorno `KAGGLE_USERNAME`/`KAGGLE_KEY` o el archivo `kaggle.json`). Si el modelo ya está versionado con DVC, puedes traerlo directamente con `make pull-data` en lugar de reentrenar.
+> **Nota:** ningún paso pide credenciales. `make data` descarga de Google Drive y `make train` no depende de DVC. Si quieres verificar el proyecto sin entrenar, corre `uv run pytest`.
 
 ---
 
@@ -365,7 +400,11 @@ artifacts:
       - clasificacion
 ```
 
-Durante `make train`, además de versionar el modelo con DVC, se registra una nueva versión con **GTO** (`gto register clasificador-sismo-fuerte`). Para inspeccionar el registro:
+El versionado está separado del entrenamiento. Después de `make train`, el equipo corre `make release`, que hace `dvc add` y `dvc push` del modelo y registra una nueva versión con **GTO** (`gto register clasificador-sismo-fuerte`). Las versiones registradas hasta ahora están como tags de Git (`clasificador-sismo-fuerte@v1.0.0`, `clasificador-sismo-fuerte@v1.1.0`).
+
+`make release` y `make pull-data` necesitan acceso al remoto DVC del equipo (hoy, una carpeta local). Por eso no forman parte del flujo para un clon nuevo: ese flujo usa `make data` y `make train`.
+
+Para inspeccionar el registro:
 
 ```bash
 # Listar los artefactos registrados
@@ -377,22 +416,32 @@ uv run gto history
 
 ---
 
-## Integración continua (CI)
+## Pruebas automatizadas
 
-Se implementará un flujo de integración continua utilizando GitHub Actions, configurado en:
-
-```text
-.github/workflows/ci.yml
+```bash
+uv run pytest -v
 ```
 
-Este workflow permitirá automatizar:
+Los tests no descargan nada. Usan la muestra versionada `data/sample_database.csv` y un archivo pequeño de límites de placa (`tests/fixtures/limites_mini.csv`, 6 tramos), así que corren igual en local y en CI, sin datos completos ni modelo entrenado. Tardan unos segundos.
 
-- Configuración del entorno de Python.
-- Instalación de dependencias.
-- Verificación de calidad del código.
-- Ejecución de pruebas automatizadas.
+| Archivo | Qué verifica |
+|---|---|
+| `tests/test_data.py` | La muestra carga con 2000 filas y sin nulos en las columnas del modelo; los rangos de latitud, longitud, profundidad y magnitud son válidos; la carga cae en la muestra si falta `database.csv`; la partición 70/20/10 no mezcla filas entre conjuntos. |
+| `tests/test_features.py` | `peso_zona_sismica` queda entre 1 y 100 al ajustar y al transformar; el pipeline produce las 4 columnas del modelo con valores finitos; las entradas con nulos se imputan. |
+| `tests/test_predict.py` | Inferencia end-to-end: entrena un Random Forest chico (20 árboles), lo serializa con `joblib`, y verifica que `predecir()` y `POST /predict` devuelven una probabilidad entre 0 y 1, que `/health` responde y que una latitud fuera de rango da error 422. |
 
-El objetivo es garantizar que los cambios realizados en el repositorio no afecten el funcionamiento del proyecto y que la rama evaluada mantenga todos los checks aprobados.
+---
+
+## Integración continua (CI)
+
+El workflow `.github/workflows/ci.yml` corre en GitHub Actions en cada `push` y cada Pull Request:
+
+1. Prepara una máquina Ubuntu limpia y descarga el repositorio.
+2. Instala `uv`.
+3. Instala Python y las dependencias exactas de `uv.lock` (`uv sync --locked`).
+4. Ejecuta `uv run pytest -v`.
+
+Si todos los tests pasan, el commit queda con check verde en GitHub; si alguno falla, o si `uv.lock` no coincide con `pyproject.toml`, queda en rojo. El CI no entrena el modelo oficial ni descarga los datasets completos.
 
 ---
 
@@ -405,6 +454,8 @@ El modelo tendrá las siguientes consideraciones:
 - La calidad de las predicciones dependerá de la precisión y disponibilidad de los registros originales.
 - Un árbol de decisión puede presentar sobreajuste si su complejidad no se controla adecuadamente.
 - Las estimaciones del modelo no constituyen predicciones de ocurrencia de terremotos ni permiten determinar cuándo o dónde sucederá uno.
+- El entrenamiento no filtra por la columna `Type`, así que incluye 180 eventos que no son terremotos naturales (175 explosiones nucleares, 4 explosiones y 1 *rock burst*) de 23 412.
+- La partición es aleatoria, no temporal. El modelo no usa la fecha como variable, pero el desempeño medido puede no reflejar exactamente el de eventos futuros.
 
 El proyecto tiene un propósito académico y de análisis de datos. Sus resultados no deben utilizarse como herramienta de alerta temprana ni como sustituto de los sistemas oficiales de monitoreo sísmico.
 
@@ -421,6 +472,7 @@ El proyecto tiene un propósito académico y de análisis de datos. Sus resultad
 | Matplotlib / Seaborn / Plotly | Visualización y análisis exploratorio. |
 | Optuna | Optimización de hiperparámetros. |
 | FastAPI / Uvicorn | API REST y servidor de la aplicación web. |
+| gdown | Descarga de los datasets desde Google Drive. |
 | DVC | Versionado de datos y modelos (data version control). |
 | GTO | Registro y etiquetado de versiones del modelo (model registry). |
 | Pytest | Pruebas automatizadas. |
