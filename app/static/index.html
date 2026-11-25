@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Earthquake Estimator</title>
+  <style>
+    :root { --bg:#f5f6f8; --card:#fff; --text:#1f2430; --muted:#6b7280; --accent:#c2410c; --border:#e5e7eb; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#14161b; --card:#1d2027; --text:#e8eaf0; --muted:#9aa1ae; --accent:#fb923c; --border:#2c303a; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    main { max-width: 560px; margin: 0 auto; padding: 32px 16px; }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    p.sub { margin: 0 0 24px; color: var(--muted); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    label { display:block; font-size:.9rem; margin: 14px 0 4px; }
+    input { width:100%; padding:10px; font-size:1rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); }
+    .ejemplos { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+    .ejemplos button { background:transparent; color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:4px 12px; cursor:pointer; font-size:.85rem; }
+    button.principal { width:100%; margin-top:20px; padding:12px; font-size:1rem; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+    button.principal:disabled { opacity:.6; cursor:wait; }
+    #resultado { margin-top:20px; display:none; }
+    .barra { height:14px; background:var(--border); border-radius:999px; overflow:hidden; margin:8px 0; }
+    .barra > div { height:100%; width:0; background:var(--accent); transition: width .4s; }
+    #porcentaje { font-size:2rem; font-weight:700; }
+    #error { margin-top:16px; color:#dc2626; display:none; }
+    .aviso { margin-top:20px; font-size:.8rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Earthquake Estimator</h1>
+  <p class="sub">Probabilidad de que un terremoto sea fuerte (magnitud ≥ 6.5) según su ubicación y profundidad.</p>
+
+  <div class="card">
+    <form id="formulario">
+      <label for="latitude">Latitud (−90 a 90)</label>
+      <input id="latitude" type="number" step="any" min="-90" max="90" required>
+
+      <label for="longitude">Longitud (−180 a 180)</label>
+      <input id="longitude" type="number" step="any" min="-180" max="180" required>
+
+      <label for="depth">Profundidad en km (0 a 800)</label>
+      <input id="depth" type="number" step="any" min="0" max="800" required>
+
+      <div class="ejemplos">
+        <button type="button" data-lat="-33" data-lon="-71.6" data-depth="30">Chile</button>
+        <button type="button" data-lat="38.3" data-lon="142.4" data-depth="30">Japón</button>
+        <button type="button" data-lat="4.5" data-lon="-75.7" data-depth="100">Colombia</button>
+      </div>
+
+      <button class="principal" id="enviar" type="submit">Estimar</button>
+    </form>
+
+    <div id="resultado">
+      <div>Probabilidad de terremoto fuerte</div>
+      <div id="porcentaje"></div>
+      <div class="barra"><div id="relleno"></div></div>
+      <div id="etiqueta"></div>
+    </div>
+    <div id="error"></div>
+  </div>
+
+  <p class="aviso">
+    Proyecto académico. Las estimaciones no predicen cuándo ni dónde ocurrirá un terremoto
+    y no sustituyen a los sistemas oficiales de monitoreo sísmico.
+    Documentación de la API: <a href="/docs">/docs</a>.
+  </p>
+</main>
+
+<script>
+  const formulario = document.getElementById("formulario");
+  const boton = document.getElementById("enviar");
+  const resultado = document.getElementById("resultado");
+  const errorBox = document.getElementById("error");
+
+  document.querySelectorAll(".ejemplos button").forEach((b) => {
+    b.addEventListener("click", () => {
+      document.getElementById("latitude").value = b.dataset.lat;
+      document.getElementById("longitude").value = b.dataset.lon;
+      document.getElementById("depth").value = b.dataset.depth;
+    });
+  });
+
+  formulario.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    errorBox.style.display = "none";
+    resultado.style.display = "none";
+    boton.disabled = true;
+
+    const cuerpo = {
+      latitude: parseFloat(document.getElementById("latitude").value),
+      longitude: parseFloat(document.getElementById("longitude").value),
+      depth: parseFloat(document.getElementById("depth").value),
+    };
+
+    try {
+      const respuesta = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cuerpo),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        const detalle = typeof datos.detail === "string" ? datos.detail : "Revisa los valores ingresados.";
+        throw new Error(detalle);
+      }
+      const pct = datos.probabilidad_fuerte * 100;
+      document.getElementById("porcentaje").textContent = pct.toFixed(1) + " %";
+      document.getElementById("relleno").style.width = pct.toFixed(1) + "%";
+      document.getElementById("etiqueta").textContent = datos.es_fuerte
+        ? "El modelo lo clasifica como fuerte (umbral " + datos.umbral + ")."
+        : "El modelo lo clasifica como no fuerte (umbral " + datos.umbral + ").";
+      resultado.style.display = "block";
+    } catch (error) {
+      errorBox.textContent = "Error: " + error.message;
+      errorBox.style.display = "block";
+    } finally {
+      boton.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
