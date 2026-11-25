@@ -78,8 +78,8 @@ test: pull-data ## Evalua el modelo guardado sobre el conjunto de prueba sin ree
 run: ## Ejecuta main.py dentro del entorno
 	uv run python main.py
 
-api: ## Levanta la API FastAPI en modo desarrollo
-	uv run uvicorn main:app --reload
+api: ## Levanta la API FastAPI y la pagina en http://127.0.0.1:8000
+	uv run uvicorn app.api:app --reload
 
 clean: ## Borra el entorno virtual y las caches de Python
 	rm -rf .venv
