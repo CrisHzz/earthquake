@@ -68,52 +68,47 @@ Las variables predictoras definitivas se establecerán durante el análisis expl
 El repositorio sigue una arquitectura modular inspirada en la plantilla de referencia del curso. Esta organización separa la experimentación, el procesamiento de datos, el entrenamiento, la predicción y la presentación de resultados.
 
 ```text
-earthquake-estimator/
+earthquake/
 │
 ├── README.md
 ├── Makefile
 ├── pyproject.toml
 ├── uv.lock
-├── .gitignore
+├── main.py
+├── dvc.yaml                 # Registro de artefactos (model registry de DVC/GTO)
+├── .dvcignore
 ├── .python-version
 │
 ├── notebooks/
-│   └── 01_exploracion_datos.ipynb
+│   ├── 01_exploracion_datos.ipynb
+│   └── 02_preprocesamiento.ipynb
 │
 ├── src/
-│   └── earthquake_estimator/
-│       ├── __init__.py
-│       ├── config.py
-│       ├── data.py
-│       ├── features.py
-│       ├── model.py
-│       ├── train.py
-│       └── predict.py
+│   ├── download_data.py     # Descarga el dataset de terremotos desde Kaggle
+│   ├── download_pb2002.py   # Descarga los límites de placa PB2002
+│   ├── zona_sismica.py      # Calcula el peso de zona sísmica (feature geográfica)
+│   └── predict.py           # Carga el modelo y realiza predicciones
+│
+├── pipelines/
+│   ├── clasificacion_fuerte.py  # Entrena y versiona el modelo oficial
+│   ├── preprocesamiento.py      # Limpieza y preparación de los datos
+│   ├── evaluar.py               # Evalúa el modelo guardado sobre el conjunto de prueba
+│   └── pruebas_peso_zona.py     # Pruebas de la feature peso_zona_sismica
 │
 ├── app/
-│   └── streamlit_app.py
-│
-├── tests/
-│   ├── __init__.py
-│   ├── test_data.py
-│   ├── test_features.py
-│   └── test_predict.py
-│
-├── models/
-│   └── .gitkeep
+│   ├── api.py               # API FastAPI (valida y delega en src/predict.py)
+│   └── static/
+│       └── index.html       # Interfaz web del estimador
 │
 ├── data/
-│   └── .gitkeep
+│   ├── database.csv.dvc         # Puntero DVC del dataset de terremotos
+│   └── PB2002_steps.csv.dvc     # Puntero DVC de los límites de placa
 │
-├── reports/
-│   └── .gitkeep
+├── models/
+│   └── modelo_clasificador_fuerte.joblib.dvc  # Puntero DVC del modelo
 │
-└── .github/
-    └── workflows/
-        └── ci.yml
+└── tests/
 ```
-
-*Los nombres de los módulos son iniciales y podrán modificarse a medida que avance el desarrollo.*
 
 ### ¿Qué hace cada carpeta?
 
@@ -123,27 +118,29 @@ earthquake-estimator/
 | `Makefile` | Centraliza los comandos para configurar, entrenar, probar y ejecutar el proyecto. |
 | `pyproject.toml` | Define las dependencias y configuración del proyecto. |
 | `uv.lock` | Mantiene versiones reproducibles de las dependencias. |
-| `notebooks/` | Experimentación, análisis exploratorio, visualizaciones y comparación de modelos. |
-| `src/` | Contiene el código fuente modular y reutilizable. |
-| `app/` | Interfaz para interactuar con el modelo y consultar predicciones. |
+| `dvc.yaml` | Registra el modelo como artefacto versionado (model registry de DVC/GTO). |
+| `notebooks/` | Experimentación, análisis exploratorio y preprocesamiento. |
+| `src/` | Código fuente reutilizable: descarga de datos, cálculo de features y predicción. |
+| `pipelines/` | Scripts ejecutables de preprocesamiento, entrenamiento y evaluación. |
+| `app/` | API FastAPI e interfaz web para consultar predicciones. |
 | `tests/` | Pruebas automatizadas para verificar el funcionamiento del proyecto. |
-| `models/` | Almacena los modelos entrenados y serializados. |
-| `data/` | Almacena los datos descargados o generados localmente. |
-| `reports/` | Contiene métricas, gráficas y resultados del análisis. |
-| `.github/workflows/` | Configuración de integración continua mediante GitHub Actions. |
+| `models/` | Almacena el modelo entrenado y serializado (versionado con DVC). |
+| `data/` | Almacena los datos descargados o generados localmente (versionados con DVC). |
 
-### ¿Qué hace cada módulo en `src/`?
+### ¿Qué hace cada módulo en `src/` y `pipelines/`?
 
 | Archivo | Responsabilidad |
 |---|---|
-| `config.py` | Centraliza las rutas, nombres de variables, parámetros y configuraciones. |
-| `data.py` | Gestiona la descarga, carga y validación del conjunto de datos. |
-| `features.py` | Realiza la limpieza, transformación y selección de características. |
-| `model.py` | Define el pipeline de preprocesamiento y el modelo de clasificación. |
-| `train.py` | Ejecuta el entrenamiento, evaluación y almacenamiento del modelo. |
-| `predict.py` | Carga el modelo entrenado y realiza predicciones sobre nuevos registros. |
+| `src/download_data.py` | Descarga el dataset de terremotos de Kaggle a `data/database.csv`. |
+| `src/download_pb2002.py` | Descarga los tramos de límites de placa PB2002 a `data/PB2002_steps.csv`. |
+| `src/zona_sismica.py` | Calcula la feature `peso_zona_sismica` a partir de la ubicación y los límites de placa. |
+| `src/predict.py` | Carga el modelo entrenado y realiza predicciones sobre nuevos eventos. |
+| `pipelines/preprocesamiento.py` | Limpieza y preparación de los datos para el entrenamiento. |
+| `pipelines/clasificacion_fuerte.py` | Entrena el `RandomForestClassifier` y guarda el pipeline completo. |
+| `pipelines/evaluar.py` | Evalúa el modelo guardado sobre el conjunto de prueba sin reentrenar. |
+| `pipelines/pruebas_peso_zona.py` | Pruebas de importancia y aporte de la feature `peso_zona_sismica`. |
 
-El principio de diseño será mantener una responsabilidad específica por módulo, evitando duplicar la lógica entre el entrenamiento y la aplicación.
+El principio de diseño es mantener una responsabilidad específica por módulo, evitando duplicar la lógica entre el entrenamiento y la aplicación.
 
 ---
 
@@ -199,7 +196,7 @@ uv run python -m ipykernel install --user --name earthquake --display-name "eart
 | `make install` | Solo sincroniza las dependencias (`uv sync`). |
 | `make kernel` | Registra el entorno como kernel de Jupyter. |
 | `make run` | Ejecuta `main.py` dentro del entorno. |
-| `make api` | Levanta la API de FastAPI en modo desarrollo. |
+| `make api` | Levanta la API de FastAPI con `uvicorn` y sirve la página web en http://127.0.0.1:8000. |
 | `make clean` | Elimina el entorno virtual y las cachés. |
 | `make help` | Lista todos los comandos disponibles. |
 
@@ -222,12 +219,45 @@ El proceso realizará el preprocesamiento, entrenamiento y evaluación del model
 ### 5. Ejecutar la aplicación
 
 ```bash
-make serve
+make api
 ```
 
-La aplicación permitirá ingresar las características de un evento sísmico y consultar la probabilidad de que sea un terremoto fuerte según el modelo.
+Este comando levanta la API de FastAPI con `uvicorn` y sirve la página web en el puerto `8000`. Una vez iniciado el servidor, abre en el navegador:
 
-*Los comandos anteriores representan la interfaz prevista del proyecto y se ajustarán a la configuración definitiva del Makefile.*
+- **Interfaz web:** http://127.0.0.1:8000/
+- **Documentación interactiva (Swagger):** http://127.0.0.1:8000/docs
+
+La aplicación permite ingresar las características de un evento sísmico (latitud, longitud y profundidad) y consultar la probabilidad de que sea un terremoto fuerte según el modelo.
+
+---
+
+## Flujo completo desde cero
+
+Si acabas de clonar el repositorio y no tienes nada preparado (ni entorno, ni datos, ni modelo), estos son los pasos en orden hasta dejar la aplicación funcionando:
+
+```bash
+# 1. Instalar dependencias y dejar el entorno listo
+make setup          # en Linux/Debian/Ubuntu usa: make setup-linux
+
+# 2. Descargar el dataset de terremotos desde Kaggle a data/database.csv
+make data
+
+# 3. Entrenar el modelo, guardarlo en models/ y versionarlo (DVC + GTO)
+make train
+
+# 4. Levantar la API y servir la página web en http://127.0.0.1:8000
+make api
+```
+
+En una sola línea (cada paso solo continúa si el anterior termina bien):
+
+```bash
+make setup && make data && make train && make api
+```
+
+Al terminar, abre http://127.0.0.1:8000/ en el navegador para usar la interfaz.
+
+> **Nota:** `make data` descarga el dataset desde Kaggle y requiere credenciales de la API de Kaggle (variable de entorno `KAGGLE_USERNAME`/`KAGGLE_KEY` o el archivo `kaggle.json`). Si el modelo ya está versionado con DVC, puedes traerlo directamente con `make pull-data` en lugar de reentrenar.
 
 ---
 
@@ -260,6 +290,92 @@ uv run python pipelines/pruebas_peso_zona.py
 
 ---
 
+
+## Versionado de datos y modelo (DVC + GTO)
+
+El proyecto no guarda los archivos grandes (datasets y modelo) en Git. En su lugar usa **DVC** para versionar los datos y el modelo, y **GTO** como registro de versiones del modelo. Git solo guarda archivos de puntero `.dvc` (texto ligero con el hash del contenido) y el `dvc.yaml` con el registro de artefactos.
+
+### Datasets versionados con DVC
+
+Cada dataset se versiona con un archivo `.dvc` que guarda su hash MD5, tamaño y nombre. El contenido real se almacena por hash en el cache de DVC (`.dvc/cache/`) y en el remoto configurado.
+
+| Dataset | Puntero DVC (en Git) | Hash MD5 | Tamaño |
+|---|---|---|---|
+| `data/database.csv` | `data/database.csv.dvc` | `6b72dda0...` | ~2.4 MB |
+| `data/PB2002_steps.csv` | `data/PB2002_steps.csv.dvc` | `f2678aab...` | ~238 KB |
+
+Ejemplo del contenido de `data/database.csv.dvc`:
+
+```yaml
+outs:
+- md5: 6b72dda08179509da5b48ebeeb2a2e9f
+  size: 2397103
+  hash: md5
+  path: database.csv
+```
+
+**Remoto DVC** (configurado en `.dvc/config`): remoto llamado `local` que apunta a la carpeta `dvc-remote/` del proyecto.
+
+```ini
+[core]
+    remote = local
+['remote "local"']
+    url = <ruta>/dvc-remote
+```
+
+Comandos útiles:
+
+```bash
+# Traer los datos versionados (según su .dvc)
+uv run dvc pull data/database.csv.dvc data/PB2002_steps.csv.dvc   # o: make pull-data
+
+# Ver el estado de los archivos versionados
+uv run dvc status
+
+# Listar los remotos configurados
+uv run dvc remote list
+```
+
+### Modelo versionado con DVC
+
+El modelo entrenado también se versiona con DVC (no se guarda en Git):
+
+| Modelo | Puntero DVC (en Git) | Hash MD5 | Tamaño |
+|---|---|---|---|
+| `models/modelo_clasificador_fuerte.joblib` | `models/modelo_clasificador_fuerte.joblib.dvc` | `ce44585e...` | ~10.5 MB |
+
+```bash
+# Traer el modelo versionado sin reentrenar
+uv run dvc pull models/modelo_clasificador_fuerte.joblib.dvc
+```
+
+### Model registry (DVC + GTO)
+
+El modelo está registrado como **artefacto** en `dvc.yaml`. Este registro es el *model registry*: le da un nombre estable (`clasificador-sismo-fuerte`), un tipo, una descripción y etiquetas, de modo que pueda listarse y versionarse.
+
+```yaml
+artifacts:
+  clasificador-sismo-fuerte:
+    path: models/modelo_clasificador_fuerte.joblib
+    type: model
+    desc: Pipeline completo (preprocesamiento + RandomForestClassifier) que estima
+          la probabilidad de Magnitude >= 6.5
+    labels:
+      - random-forest
+      - clasificacion
+```
+
+Durante `make train`, además de versionar el modelo con DVC, se registra una nueva versión con **GTO** (`gto register clasificador-sismo-fuerte`). Para inspeccionar el registro:
+
+```bash
+# Listar los artefactos registrados
+uv run dvc artifacts list .
+
+# Ver el historial de versiones registradas con GTO
+uv run gto history
+```
+
+---
 
 ## Integración continua (CI)
 
@@ -302,8 +418,11 @@ El proyecto tiene un propósito académico y de análisis de datos. Sus resultad
 | Pandas | Manipulación y análisis de datos. |
 | NumPy | Operaciones numéricas. |
 | Scikit-learn | Preprocesamiento, entrenamiento y evaluación del modelo. |
-| Matplotlib / Seaborn | Visualización y análisis exploratorio. |
-| Streamlit | Desarrollo de la aplicación interactiva. |
+| Matplotlib / Seaborn / Plotly | Visualización y análisis exploratorio. |
+| Optuna | Optimización de hiperparámetros. |
+| FastAPI / Uvicorn | API REST y servidor de la aplicación web. |
+| DVC | Versionado de datos y modelos (data version control). |
+| GTO | Registro y etiquetado de versiones del modelo (model registry). |
 | Pytest | Pruebas automatizadas. |
 | uv | Gestión de dependencias y entorno. |
 | Git y GitHub | Control de versiones y colaboración. |
