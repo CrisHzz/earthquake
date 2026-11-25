@@ -20,7 +20,32 @@ ENTRADAS_ORIGINALES = ["Latitude", "Longitude", "Depth"]
 COLUMNAS_MODELO = ENTRADAS_ORIGINALES + ["peso_zona_sismica"]
 
 
-def cargar_datos(ruta=PROJECT_ROOT / "data" / "database.csv"):
+RUTA_DATOS_COMPLETOS = PROJECT_ROOT / "data" / "database.csv"
+RUTA_DATOS_MUESTRA = PROJECT_ROOT / "data" / "sample_database.csv"
+
+
+def cargar_datos(ruta=None):
+    """Carga el dataset de terremotos.
+
+    Si ``ruta`` es None, usa el dataset completo (``data/database.csv``) cuando
+    existe; si no (p. ej. un clon recién descargado sin DVC/Kaggle), cae en la
+    muestra versionada en Git (``data/sample_database.csv``) para que el
+    proyecto funcione sin descargar nada.
+    """
+    if ruta is None:
+        if RUTA_DATOS_COMPLETOS.exists():
+            ruta = RUTA_DATOS_COMPLETOS
+        elif RUTA_DATOS_MUESTRA.exists():
+            print(
+                f"[datos] No se encontró {RUTA_DATOS_COMPLETOS.name}; "
+                f"usando la muestra {RUTA_DATOS_MUESTRA.name} (2000 filas)."
+            )
+            ruta = RUTA_DATOS_MUESTRA
+        else:
+            raise FileNotFoundError(
+                "No se encontró ni el dataset completo ni la muestra. "
+                "Ejecuta 'make data' o 'make pull-data' para obtener los datos."
+            )
     return pd.read_csv(ruta)
 
 
